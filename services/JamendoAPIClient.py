@@ -1,6 +1,6 @@
 import os
 import requests
-import base64
+from google.cloud import storage
 from dotenv import load_dotenv
 from datetime import datetime
 from models.SoundFragment import SoundFragment
@@ -9,12 +9,19 @@ from services.SoundFragmentQueue import SoundFragmentQueue
 
 load_dotenv()
 
+
 class JamendoAPIClient:
     def __init__(self):
         self.client_id = os.getenv("JAMENDO_CLIENT_ID")
+        self.bucket_name = os.getenv("GCP_BUCKET_NAME")  # Ensure the bucket name is set in the environment variables
         self.api_base_url = "https://api.jamendo.com/v3.0"
-        if not self.client_id:
-            logger.error("JAMENDO_CLIENT_ID is not set in environment variables")
+        self.storage_client = storage.Client()
+
+    def upload_to_gcs(self, content, blob_name):
+        bucket = self.storage_client.bucket(self.bucket_name)
+        blob = bucket.blob(blob_name)
+        blob.upload_from_string(content)
+        return f"gs://{self.bucket_name}/{blob_name}"
 
     def fetch_metadata_by_genre(self, genre):
         url = f"{self.api_base_url}/tracks"
@@ -58,26 +65,31 @@ class JamendoAPIClient:
         if metadata:
             response = requests.get(metadata["stream_url"], stream=True)
             response.raise_for_status()
-            encoded_audio = base64.b64encode(response.content).decode("utf-8")
+
+            blob_name = f"{metadata['artist']}_{metadata['title']}.mp3"
+            file_uri = self.upload_to_gcs(response.content, blob_name)  # Upload file to GCS
+
             fragment = SoundFragment(
-                source="jamendo",
-                file_uri=encoded_audio,
-                type="song",
+                source="JAMENDO",
+                fileUri=file_uri,
+                type="SONG",
                 author=metadata["artist"],
-                created_at=datetime.utcnow().isoformat(),
+                name=metadata["title"],
+                createdAt=datetime.utcnow().isoformat(),
                 genre=metadata["genre"],
                 album=metadata["album"]
             )
-            logger.info(f"Created SoundFragment for track '{metadata['title']}'")
+            logger.info(f"Created SoundFragment for track '{metadata['title']}' source '{fragment.source}'")
             return fragment
         else:
             logger.warning(f"Could not create SoundFragment for genre: {genre}")
             return None
 
+
 # Test call to fetch, create, and publish a song to Pub/Sub
 if __name__ == "__main__":
     jamendo_client = JamendoAPIClient()
-    sound_fragment = jamendo_client.create_sound_fragment("synthpop")
+    sound_fragment = jamendo_client.create_sound_fragment("house")
     if sound_fragment:
         sound_queue = SoundFragmentQueue()
         sound_queue.publish_sound_fragment(sound_fragment)

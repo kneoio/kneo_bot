@@ -199,7 +199,7 @@ class AIHandler:
                     file=tool_input["file"],
                     type=tool_input["type"],
                     author=tool_input["author"],
-                    created_at=tool_input["created_at"]
+                    createdAt=tool_input["created_at"]
                 )
                 logging.basicConfig(level=logging.INFO)
 

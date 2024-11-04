@@ -37,10 +37,10 @@ class LocalAudioProcessor:
         # Create the SoundFragment object with the URI instead of Base64-encoded file data
         fragment = SoundFragment(
             source="gcs",
-            file_uri=file_uri,  # Store the URI instead of the encoded audio
+            fileUri=file_uri,  # Store the URI instead of the encoded audio
             type="song",
             author=author,
-            created_at=datetime.utcnow().isoformat(),
+            createdAt=datetime.utcnow().isoformat(),
             genre=genre,
             album=album
         )

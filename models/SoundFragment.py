@@ -4,10 +4,11 @@ from dataclasses import dataclass, asdict
 @dataclass
 class SoundFragment:
     source: str
-    file_uri: str
+    fileUri: str
+    name: str
     type: str
     author: str
-    created_at: str
+    createdAt: str
     genre: str
     album: str
 
