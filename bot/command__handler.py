@@ -1,10 +1,13 @@
 import logging
 from telegram import Update
-from telegram.ext import ContextTypes, CallbackContext
-from localization.TranslationLoader import TranslationLoader
-from services.ConsumingAPIClient import ConsumingAPIClient
+from telegram.ext import ContextTypes, CallbackContext, ConversationHandler
+
+from bot.constants import CONFIRM_REGISTRATION
+from services.UserAPIClient import UserAPIClient
 
 logger = logging.getLogger(__name__)
+
+user_client = UserAPIClient()
 
 
 def get_user_language(context):
@@ -12,32 +15,32 @@ def get_user_language(context):
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
     language_code = get_user_language(context)
-    translations = TranslationLoader()
-    logger.info(f"User {update.effective_user.id} started the bot.")
-    await update.message.reply_text(translations.get_translation('send_odometer_and_pump_photo', language_code))
+
+    existing_user = user_client.check_user(user.username)
+    if existing_user:
+        await update.message.reply_text(f"Welcome back {user.username}!")
+        return ConversationHandler.END
+
+    await update.message.reply_text(f"Hi {user.username}! Not registered. Reply 'yes' to register.")
+    return CONFIRM_REGISTRATION
+
+
+async def handle_registration(update: Update, context: CallbackContext):
+    if update.message.text.lower() == 'yes':
+        user = update.effective_user
+        result = user_client.register_user(user.username)
+        msg = "Registration successful!" if result else "Registration failed. Try again."
+        await update.message.reply_text(msg)
+    else:
+        await update.message.reply_text("Registration cancelled.")
+    return ConversationHandler.END
 
 
 async def list_events(update: Update, context: CallbackContext):
     user_name = update.effective_user.username
-    language_code = get_user_language(context)
-    api_client = ConsumingAPIClient()
-    events = api_client.get_events(user_name)
-
-    if events:
-        entries = events.get('entries', [])
-        if entries:
-            event_details = []
-            for event in entries:
-                event_text = (
-                    f"Date: {event['regDate']}\n"
-                    f"Last Liters: {event['lastLiters']}\n"
-                    f"Total Km: {event['totalKm']}\n"
-                    "-------------------------"
-                )
-                event_details.append(event_text)
-
-            response_text = "\n".join(event_details)
-            await update.message.reply_text(f"Your events:\n{response_text}")
-        else:
-            await update.message.reply_text("You have no events.")
+    if not user_client.check_user(user_name):
+        await update.message.reply_text("Please register first using /start")
+        return
+    await update.message.reply_text(f"Listed events for {user_name}")

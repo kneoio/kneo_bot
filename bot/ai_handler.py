@@ -19,6 +19,18 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+PROJECT_ID = os.getenv("GCP_PROJECT_ID")
+TOPIC_NAME = os.getenv("PUBSUB_TOPIC_NAME")
+
+
+def load_tool_definitions():
+    try:
+        with open('tools_definition/base_tools.json', 'r') as file:
+            data = json.load(file)
+            return data['tools']
+    except Exception as e:
+        logger.error(f"Error loading tool definitions: {e}")
+        return []
 
 
 class AIHandler:
@@ -26,96 +38,7 @@ class AIHandler:
         self.client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         self.user_client = UserAPIClient()
         self.music_client = MusicAPIClient()
-        self.tools = self.load_tool_definitions()
-
-    def load_tool_definitions(self):
-        return [
-            {
-                "name": "check_user",
-                "description": "Check if a user exists in the system",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "telegramName": {
-                            "type": "string",
-                            "description": "Telegram username to check"
-                        }
-                    },
-                    "required": ["telegramName"]
-                }
-            },
-            {
-                "name": "register_user",
-                "description": "Register a new user in the system",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "telegramName": {
-                            "type": "string",
-                            "description": "Telegram username to register"
-                        }
-                    },
-                    "required": ["telegramName"]
-                }
-            },
-            {
-                "name": "add_to_music_queue",
-                "description": "Add a song to the music queue",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "title": {"type": "string", "description": "Song title"},
-                        "artist": {"type": "string", "description": "Artist name"},
-                        "url": {"type": "string", "description": "Song URL"},
-                        "chat_id": {"type": "string", "description": "Chat ID where to add the song"},
-                        "added_by": {"type": "string", "description": "Username of who added the song"}
-                    },
-                    "required": ["title", "artist", "url", "chat_id", "added_by"]
-                }
-            },
-            {
-                "name": "publish_sound_fragment",
-                "description": "Publish a sound fragment to the Pub/Sub queue for broadcasting",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "source": {"type": "string",
-                                   "description": "Source of the sound, e.g., 'uploaded' or 'jamendo'"},
-                        "file": {"type": "string", "description": "File name or URL"},
-                        "type": {"type": "string", "description": "Type of fragment, e.g., 'song' or 'speech'"},
-                        "author": {"type": "string", "description": "Author or uploader of the fragment"},
-                        "created_at": {"type": "string", "description": "Timestamp when fragment was created"}
-                    },
-                    "required": ["source", "file", "type", "author", "created_at"]
-                }
-            },
-
-            {
-                "name": "get_music_queue",
-                "description": "Get the current music queue",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "chat_id": {"type": "string", "description": "Chat ID to get queue for"}
-                    },
-                    "required": ["chat_id"]
-                }
-            },
-            {
-                "name": "save_favorite",
-                "description": "Save a song to user's favorites",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "title": {"type": "string", "description": "Song title"},
-                        "artist": {"type": "string", "description": "Artist name"},
-                        "url": {"type": "string", "description": "Song URL"},
-                        "user_id": {"type": "string", "description": "User ID to save for"}
-                    },
-                    "required": ["title", "artist", "url", "user_id"]
-                }
-            }
-        ]
+        self.tools = load_tool_definitions()
 
     async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = str(update.effective_chat.id)
@@ -203,11 +126,6 @@ class AIHandler:
                 )
                 logging.basicConfig(level=logging.INFO)
 
-                # Project and topic information
-                PROJECT_ID = os.getenv("GCP_PROJECT_ID")  # Load from .env
-                TOPIC_NAME = os.getenv("PUBSUB_TOPIC_NAME")  # Load from .env
-
-                # Initialize the queue
                 sound_queue = SoundFragmentQueue(PROJECT_ID, TOPIC_NAME)
                 sound_queue.publish_sound_fragment(fragment)
                 return json.dumps({"status": "success", "message": "Sound fragment published to queue"})
