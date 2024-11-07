@@ -5,7 +5,8 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ConversationHandler, \
     CallbackContext
 
-from bot.command__handler import list_events, start, handle_registration
+from ai.assistant import AIHandler
+from bot.command__handler import list_events, start, handle_registration, add_random_event
 from bot.constants import CONFIRM_REGISTRATION
 
 load_dotenv()
@@ -34,24 +35,35 @@ async def error_handler(update: object, context: CallbackContext):
     if isinstance(update, Update) and update.message:
         await update.message.reply_text("An error occurred. Please try again.")
 
-
 if __name__ == '__main__':
-    logger.info("Starting the bot...")
+   logger.info("Starting the bot...")
 
-    app = ApplicationBuilder().token(API_TOKEN).build()
-    app.add_error_handler(error_handler)
-    app.add_handler(CommandHandler('events', list_events))
+   app = ApplicationBuilder().token(API_TOKEN).build()
+   app.add_error_handler(error_handler)
 
-    registration_conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
-        states={
-            CONFIRM_REGISTRATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_registration)]
-        },
-        fallbacks=[CommandHandler('cancel', cancel)]
-    )
+   # Create AI handler instance
+   ai_handler = AIHandler()
 
-    app.add_handler(registration_conv_handler)
-    app.add_handler(CommandHandler('setlanguage', set_language))
+   # Add command handlers
+   app.add_handler(CommandHandler('events', list_events))
+   app.add_handler(CommandHandler('add_random_event', add_random_event))
 
-    logger.info("Bot is running...")
-    app.run_polling()
+   registration_conv_handler = ConversationHandler(
+       entry_points=[CommandHandler('start', start)],
+       states={
+           CONFIRM_REGISTRATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_registration)]
+       },
+       fallbacks=[CommandHandler('cancel', cancel)]
+   )
+
+   app.add_handler(registration_conv_handler)
+   app.add_handler(CommandHandler('setlanguage', set_language))
+
+   # Add handler for text messages (non-commands)
+   app.add_handler(MessageHandler(
+       filters.TEXT & ~filters.COMMAND,
+       ai_handler.handle_text
+   ))
+
+   logger.info("Bot is running...")
+   app.run_polling()
