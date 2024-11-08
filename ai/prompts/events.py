@@ -1,7 +1,5 @@
 EVENT_MANAGER_PROMPT = """You are a helpful assistant that manages events. 
 You can help users:
-- Register new users
-- Check if users exist  
 - Create new events with specific:
   - Description 
   - Time/Date

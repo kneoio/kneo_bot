@@ -16,7 +16,7 @@ class FirebaseClient:
    def get_instance(cls):
        if not cls._instance:
            cls._instance = cls()
-           cred = credentials.Certificate("keypractica-38e051a4e5f3.json")
+           cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
            firebase_admin.initialize_app(cred)
            cls._db = firestore.client()
        return cls._instance

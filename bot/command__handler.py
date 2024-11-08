@@ -20,26 +20,13 @@ def get_user_language(context):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    language_code = get_user_language(context)
-
     existing_user = user_client.check_user(user.username)
     if existing_user:
-        await update.message.reply_text(f"Welcome back {user.username}!")
+        await update.message.reply_text(f"👋 {user.username}!")
         return ConversationHandler.END
 
-    await update.message.reply_text(f"Hi {user.username}! Not registered. Reply 'yes' to register.")
+    await update.message.reply_text(f"❗ {user.username}")
     return CONFIRM_REGISTRATION
-
-
-async def handle_registration(update: Update):
-    if update.message.text.lower() == 'yes':
-        user = update.effective_user
-        result = user_client.register_user(user.username)
-        msg = "Registration successful!" if result else "Registration failed. Try again."
-        await update.message.reply_text(msg)
-    else:
-        await update.message.reply_text("Registration cancelled.")
-    return ConversationHandler.END
 
 
 async def list_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -58,20 +45,6 @@ async def list_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message += f"\n- {event.description} at {event.around} ({event.precision})"
 
     await update.message.reply_text(message)
-
-
-async def add_random_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    now = datetime.now()
-    event = Event(
-        around=now,
-        precision=Precision.EXACT,  # Changed
-        description="Random test event",
-        type=EventType.REMINDER,  # Changed
-        author=update.effective_user.username,
-        createdAt=now
-    )
-
-    return await add_event(update, context, event)
 
 
 async def add_event(update: Update, context: ContextTypes.DEFAULT_TYPE, event: Event):

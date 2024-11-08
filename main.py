@@ -5,9 +5,9 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ConversationHandler, \
     CallbackContext
 
-from ai.assistant import AIHandler
-from bot.command__handler import list_events, start, handle_registration, add_random_event
-from bot.constants import CONFIRM_REGISTRATION
+from ai.assistant import Assistant
+from bot.command__handler import list_events, start
+
 
 load_dotenv()
 API_TOKEN = os.getenv('TELEGRAM_BOT_API_TOKEN')
@@ -41,25 +41,18 @@ if __name__ == '__main__':
    app = ApplicationBuilder().token(API_TOKEN).build()
    app.add_error_handler(error_handler)
 
-   # Create AI handler instance
-   ai_handler = AIHandler()
+   ai_handler = Assistant()
 
-   # Add command handlers
    app.add_handler(CommandHandler('events', list_events))
-   app.add_handler(CommandHandler('add_random_event', add_random_event))
-
    registration_conv_handler = ConversationHandler(
        entry_points=[CommandHandler('start', start)],
        states={
-           CONFIRM_REGISTRATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_registration)]
+
        },
        fallbacks=[CommandHandler('cancel', cancel)]
    )
 
    app.add_handler(registration_conv_handler)
-   app.add_handler(CommandHandler('setlanguage', set_language))
-
-   # Add handler for text messages (non-commands)
    app.add_handler(MessageHandler(
        filters.TEXT & ~filters.COMMAND,
        ai_handler.handle_text

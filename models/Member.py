@@ -1,14 +1,14 @@
-import logging
-
-logger = logging.getLogger(__name__)
+from datetime import date
+from typing import Dict, List
 
 class Member:
-    def __init__(self, telegram_name, vehicles):
-        self.id = None
-        self.author = None
-        self.reg_date = None
-        self.last_modifier = None
-        self.last_modified_date = None
-        self.telegram_name = telegram_name
-        self.localized_name = {}
-
+    def __init__(self, name: str):
+        self.telegramName = name
+        self.realName = name
+        self.nicknames: List[str] = []
+        self.preferred_genres: Dict[str, float] = {}
+        self.preferred_languages: Dict[str, float] = {}
+        self.birthday: date = None
+        self.located: str = ""
+        self.obsessions: List[str] = []
+        self.friends: Dict['Member', str] = {}

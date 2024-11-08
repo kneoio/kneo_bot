@@ -1,6 +1,9 @@
 import json
 import logging
+import os
+
 import anthropic
+from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ContextTypes
 from bot.constants import UNDEFINED
@@ -8,17 +11,18 @@ from ai.prompts.events import EVENT_MANAGER_PROMPT
 from ai.tools import ToolHandler
 
 logger = logging.getLogger(__name__)
+load_dotenv()
 
 
-class AIHandler:
-    def __init__(self, api_key: str):
-        self.client = anthropic.Anthropic(api_key=api_key)
+class Assistant:
+    def __init__(self):
+        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         self.tools = self._load_tool_definitions()
         self.tool_handler = ToolHandler()
 
     def _load_tool_definitions(self):
         try:
-            with open('tools_definition/base_tools.json', 'r') as file:
+            with open('ai/tools_definition/base_tools.json', 'r') as file:
                 data = json.load(file)
                 return data['tools']
         except Exception as e:

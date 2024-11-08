@@ -1,44 +1,46 @@
 import logging
-
 from dotenv import load_dotenv
 from google.cloud.firestore_v1.base_query import FieldFilter
-
 from services.firebase_client import FirebaseClient
+from models.Member import Member
 
 load_dotenv()
 logger = logging.getLogger(__name__)
+
 
 class UserStorageClient:
     def __init__(self):
         self.db = FirebaseClient.get_db()
 
-    def check_user(self, telegram_name):
-        global real_name
+    def check_user(self, telegram_name: str) -> Member:
         try:
             docs = (
                 self.db.collection("members")
                 .where(filter=FieldFilter("telegramName", "==", telegram_name))
                 .stream()
             )
+
+            member = None
             for doc in docs:
                 print(f"{doc.id} => {doc.to_dict()}")
-                real_name = doc.to_dict().get('realName')
+                data = doc.to_dict()
+                member = Member(telegram_name)
+                member.__dict__.update(data)
 
-            return real_name
+            if not member:
+                return self.register_user(telegram_name)
+
+            return member
         except Exception as e:
             logger.error(f"Error checking user: {e}")
             return None
 
-    def register_user(self, telegram_name):
+    def register_user(self, telegram_name: str) -> Member:
         try:
-            if not self.check_user(telegram_name):
-                doc_ref = self.db.collection("members").document(telegram_name)
-                doc_ref.set({
-                    'telegramName': telegram_name,
-                    'realName': 'test'
-                })
-                return self.check_user(telegram_name)
-            return None
+            member = Member(telegram_name)
+            doc_ref = self.db.collection("members").document(telegram_name)
+            doc_ref.set(member.__dict__)
+            return member
         except Exception as e:
             logger.error(f"Error registering user: {e}")
             return None
