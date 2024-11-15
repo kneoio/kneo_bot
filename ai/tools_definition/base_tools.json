@@ -1,6 +1,68 @@
 {
   "tools": [
     {
+      "name": "recognize_song",
+      "description": "Recognize song using Shazam API",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "audio_data": {
+            "type": "string"
+          }
+        },
+        "required": ["audio_data"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "metadata": {"type": "object"}
+        },
+        "required": ["success"]
+      }
+    },
+    {
+      "name": "generate_audio_fragment",
+      "description": "Generate spoken audio fragment using Google TTS",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "text": {"type": "string"},
+          "voice_name": {"type": "string"},
+          "language_code": {"type": "string"}
+        },
+        "required": ["text"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "audio_data": {"type": "string"}
+        },
+        "required": ["success"]
+      }
+    },
+    {
+      "name": "merge_audio",
+      "description": "Merge two audio files",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "intro_audio": {"type": "string"},
+          "main_audio": {"type": "string"}
+        },
+        "required": ["intro_audio", "main_audio"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "merged_audio": {"type": "string"}
+        },
+        "required": ["success"]
+      }
+    },
+    {
       "name": "check_user",
       "description": "Check if a user exists in the system",
       "input_schema": {
@@ -90,6 +152,75 @@
         "type": "object",
         "properties": {},
         "required": []
+      }
+    },
+    {
+      "name": "get_sound_fragment",
+      "description": "Get a sound fragment from Jamendo API by providing list of genres",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of genres to search for (e.g. [\"house\", \"edm\"])"
+          }
+        },
+        "required": [
+          "genres"
+        ]
+      }
+    },
+    {
+      "name": "publish_sound_fragment",
+      "description": "Publish sound fragment to Google Pub/Sub queue",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "fragment": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string"
+              },
+              "fileUri": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "author": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "genre": {
+                "type": "string"
+              },
+              "album": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "source",
+              "fileUri",
+              "type",
+              "author",
+              "name",
+              "createdAt",
+              "genre"
+            ]
+          }
+        },
+        "required": [
+          "fragment"
+        ]
       }
     }
   ]

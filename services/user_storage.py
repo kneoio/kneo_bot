@@ -1,12 +1,10 @@
-import logging
 from dotenv import load_dotenv
 from google.cloud.firestore_v1.base_query import FieldFilter
 from services.firebase_client import FirebaseClient
 from models.Member import Member
+from utils.logger import logger
 
 load_dotenv()
-logger = logging.getLogger(__name__)
-
 
 class UserStorageClient:
     def __init__(self):

@@ -1,4 +1,3 @@
-import logging
 import os
 from dotenv import load_dotenv
 from telegram import Update
@@ -7,14 +6,10 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 
 from ai.assistant import Assistant
 from bot.command__handler import list_events, start
-
+from utils.logger import logger
 
 load_dotenv()
 API_TOKEN = os.getenv('TELEGRAM_BOT_API_TOKEN')
-
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 
 async def set_language(update, context):
     if len(context.args) > 0:
@@ -46,15 +41,14 @@ if __name__ == '__main__':
    app.add_handler(CommandHandler('events', list_events))
    registration_conv_handler = ConversationHandler(
        entry_points=[CommandHandler('start', start)],
-       states={
-
-       },
+       states={},
        fallbacks=[CommandHandler('cancel', cancel)]
    )
 
    app.add_handler(registration_conv_handler)
+   # Handle both text and audio with AI assistant
    app.add_handler(MessageHandler(
-       filters.TEXT & ~filters.COMMAND,
+       (filters.TEXT | filters.AUDIO) & ~filters.COMMAND,
        ai_handler.handle_text
    ))
 

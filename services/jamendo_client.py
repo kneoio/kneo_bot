@@ -1,4 +1,6 @@
 import os
+from typing import List
+
 import requests
 from google.cloud import storage
 from dotenv import load_dotenv
@@ -13,7 +15,7 @@ load_dotenv()
 class JamendoAPIClient:
     def __init__(self):
         self.client_id = os.getenv("JAMENDO_CLIENT_ID")
-        self.bucket_name = os.getenv("GCP_BUCKET_NAME")  # Ensure the bucket name is set in the environment variables
+        self.bucket_name = os.getenv("GCP_BUCKET_NAME")
         self.api_base_url = "https://api.jamendo.com/v3.0"
         self.storage_client = storage.Client()
 
@@ -23,18 +25,19 @@ class JamendoAPIClient:
         blob.upload_from_string(content)
         return f"gs://{self.bucket_name}/{blob_name}"
 
-    def fetch_metadata_by_genre(self, genre):
+    def fetch_metadata_by_genre(self, genres:  List[str]):
         url = f"{self.api_base_url}/tracks"
+        genre_string = "+".join(genres["genres"])
         params = {
             "client_id": self.client_id,
             "format": "json",
-            "tags": genre,
+            "fuzzytags": genre_string,
             "limit": 1
         }
 
         try:
             response = requests.get(url, params=params)
-            logger.info(f"Fetching metadata for genre: {genre}")
+            logger.info(f"Fetching metadata for genre: {genre_string}")
             if response.status_code == 200:
                 data = response.json()
                 if data.get("results"):
@@ -45,13 +48,13 @@ class JamendoAPIClient:
                         "album": track.get("album_name", "Unknown Album"),
                         "release_date": track["releasedate"],
                         "duration": track["duration"],
-                        "genre": genre,
+                        "genre": genre_string,
                         "stream_url": track["audio"]
                     }
                     logger.info(f"Fetched metadata for track: {metadata['title']}")
                     return metadata
                 else:
-                    logger.warning(f"No track found for genre: {genre}")
+                    logger.warning(f"No track found for genre: {genre_string}")
                     return None
             else:
                 logger.error(f"Error fetching metadata: {response.status_code}, {response.text}")
@@ -60,14 +63,14 @@ class JamendoAPIClient:
             logger.error(f"Error fetching track metadata from Jamendo: {e}")
             return None
 
-    def create_sound_fragment(self, genre):
-        metadata = self.fetch_metadata_by_genre(genre)
+    def get_sound_fragment(self, genres:  List[str]):
+        metadata = self.fetch_metadata_by_genre(genres)
         if metadata:
             response = requests.get(metadata["stream_url"], stream=True)
             response.raise_for_status()
 
             blob_name = f"{metadata['artist']}_{metadata['title']}.mp3"
-            file_uri = self.upload_to_gcs(response.content, blob_name)  # Upload file to GCS
+            file_uri = self.upload_to_gcs(response.content, blob_name)
 
             fragment = SoundFragment(
                 source="JAMENDO",
@@ -82,14 +85,13 @@ class JamendoAPIClient:
             logger.info(f"Created SoundFragment for track '{metadata['title']}' source '{fragment.source}'")
             return fragment
         else:
-            logger.warning(f"Could not create SoundFragment for genre: {genre}")
+            logger.warning(f"Could not create SoundFragment for genre: {genres}")
             return None
 
 
-# Test call to fetch, create, and publish a song to Pub/Sub
 if __name__ == "__main__":
     jamendo_client = JamendoAPIClient()
-    sound_fragment = jamendo_client.create_sound_fragment("house")
+    sound_fragment = jamendo_client.get_sound_fragment(["house", "edm"])
     if sound_fragment:
         sound_queue = SoundFragmentQueue()
         sound_queue.publish_sound_fragment(sound_fragment)

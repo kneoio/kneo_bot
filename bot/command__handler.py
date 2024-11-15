@@ -1,6 +1,3 @@
-import logging
-from datetime import datetime
-
 from telegram import Update
 from telegram.ext import ContextTypes, CallbackContext, ConversationHandler
 
@@ -8,8 +5,6 @@ from bot.constants import CONFIRM_REGISTRATION
 from models.Event import Event, Precision, EventType
 from services.user_storage import UserStorageClient
 from services.event_repository import EventRepository
-
-logger = logging.getLogger(__name__)
 
 user_client = UserStorageClient()
 event_repo = EventRepository()
