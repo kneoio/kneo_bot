@@ -9,11 +9,24 @@ from services.event_repository import EventRepository
 user_client = UserStorageClient()
 event_repo = EventRepository()
 
+
 def get_user_language(context):
     return context.user_data.get('language_code', 'en')
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def show_context(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = "Saved data:\n"
+    for key, value in context.user_data.items():
+        # Check if value looks like hex data (starts with typical hex pattern)
+        if isinstance(value, str) and value.startswith('4944'):
+            message += f"#{key}: Binary Audio\n"
+        else:
+            message += f"{key}: {str(value)[:30]}\n"
+
+    await update.message.reply_text(message)
+
+
+async def remember_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     existing_user = user_client.check_user(user.username)
     if existing_user:

@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 
 from models.Event import Event, Precision, EventType
+from models.ai_tool_result import AiToolResult
 from services.audd_client import AudDAPIClient
 from services.event_repository import EventRepository
 from services.file_processor import LocalAudioProcessor
@@ -77,23 +78,16 @@ class ToolHandler:
             "events": events
         })
 
-    async def handle_recognize_song(self, input_data: dict, context_data: dict) -> str:
+    async def handle_recognize_song(self, input_data: dict, context_data: dict) -> AiToolResult:
         try:
             audio_data = bytes.fromhex(context_data[input_data['message_id']])
             metadata = await self.shazam_client.detect_song(audio_data)
-
-            return json.dumps({
-                "success": True,
-                "metadata": metadata
-            })
+            return AiToolResult.from_text(f"Found: {metadata.get('title')} - {metadata.get('artist')}")
         except Exception as e:
             logger.error(f"Recognition error: {e}")
-            return json.dumps({
-                "success": False,
-                "metadata": {"error": str(e)}
-            })
+            return AiToolResult.from_exception(e)
 
-    async def handle_generate_audio_fragment(self, input_data: dict) -> str:
+    async def handle_generate_audio_fragment(self, input_data: dict, context_data: dict) -> AiToolResult:
         try:
             speech_data = await self.tts_client.synthesize_speech(
                 text=input_data['text'],
@@ -101,31 +95,19 @@ class ToolHandler:
                 language_code=input_data.get('language_code', 'en-US')
             )
 
-            return json.dumps({
-                "success": bool(speech_data),
-                "audio_data": speech_data.hex() if speech_data else ""
-            })
+            context_data['last_tts'] = speech_data
+            return AiToolResult.from_audio(speech_data)
         except Exception as e:
             logger.error(f"TTS error: {e}")
-            return json.dumps({
-                "success": False,
-                "audio_data": ""
-            })
+            return AiToolResult.from_exception(e)
 
-    async def handle_merge_audio(self, input_data: dict) -> str:
+    async def handle_merge_audio(self, input_data: dict) -> AiToolResult:
         try:
             intro_audio = bytes.fromhex(input_data['intro_audio'])
             main_audio = bytes.fromhex(input_data['main_audio'])
 
             merged_data = self.audio_processor.merge_audio_files(intro_audio, main_audio)
-
-            return json.dumps({
-                "success": bool(merged_data),
-                "merged_audio": merged_data.hex() if merged_data else ""
-            })
+            return AiToolResult.from_audio(merged_data)
         except Exception as e:
             logger.error(f"Merge error: {e}")
-            return json.dumps({
-                "success": False,
-                "merged_audio": ""
-            })
+            return AiToolResult.from_exception(e)

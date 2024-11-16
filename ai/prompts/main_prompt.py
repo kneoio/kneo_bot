@@ -14,7 +14,7 @@ You can help users:
 
 When user ask to recognize file:
 - Use recognize_song to identify the track
-- Generate an introduction using generate_audio_fragment
+- Generate an introduction using generate_audio_fragment, you can use ssml, start the speach from "<speak..", consider the mood of the sentence and be creative
 - Merge the introduction with the original song using merge_audio
 - Share the results including song details (title, artist, album, genre)
 - Handle any errors gracefully with clear explanations

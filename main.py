@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 
 from ai.assistant import Assistant
-from bot.command__handler import list_events, start
+from bot.command__handler import list_events, show_context
 from utils.logger import logger
 
 load_dotenv()
@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     ai_handler = Assistant()
 
-    app.add_handler(CommandHandler('start', start))
+    app.add_handler(CommandHandler('show_context', show_context))
     app.add_handler(CommandHandler('events', list_events))
     app.add_handler(CommandHandler('set_language', set_language))
 

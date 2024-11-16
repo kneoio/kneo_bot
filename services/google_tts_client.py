@@ -10,11 +10,15 @@ class GoogleTTSClient:
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
         self.client = texttospeech.TextToSpeechClient()
 
-
     async def synthesize_speech(self, text: str, voice_name: str = "en-US-Casual-K",
-                              language_code: str = "en-US") -> bytes:
+                                language_code: str = "en-US") -> bytes:
         try:
-            synthesis_input = texttospeech.SynthesisInput(text=text)
+            # Check if text contains SSML tags
+            if text.strip().startswith('<speak'):
+                synthesis_input = texttospeech.SynthesisInput(ssml=text)
+            else:
+                synthesis_input = texttospeech.SynthesisInput(text=text)
+
             voice = texttospeech.VoiceSelectionParams(
                 language_code=language_code,
                 name=voice_name
