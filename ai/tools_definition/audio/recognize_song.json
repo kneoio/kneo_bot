@@ -1,0 +1,16 @@
+{
+  "name": "recognize_song",
+  "description": "Recognize song using dedicated API. User can name it as Shazam. Requires audio to be pre-uploaded.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "message_id": {
+        "type": "string",
+        "description": "Telegram message ID that contains the audio"
+      }
+    },
+    "required": [
+      "message_id"
+    ]
+  }
+}

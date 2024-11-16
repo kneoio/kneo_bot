@@ -1,29 +1,37 @@
 import json
 import logging
 from datetime import datetime
-from typing import List
 
-from models.SoundFragment import SoundFragment
-from services.SoundFragmentQueue import SoundFragmentQueue
+from models.Event import Event, Precision, EventType
+from services.audd_client import AudDAPIClient
+from services.event_repository import EventRepository
+from services.file_processor import LocalAudioProcessor
+from services.google_tts_client import GoogleTTSClient
 from services.jamendo_client import JamendoAPIClient
 from services.user_storage import UserStorageClient
-from services.event_repository import EventRepository
-from services.shazam_client import ShazamAPIClient
-from services.google_tts_client import GoogleTTSClient
-from services.file_processor import LocalAudioProcessor
-from models.Event import Event, Precision, EventType
 
 logger = logging.getLogger(__name__)
 
 class ToolHandler:
     def __init__(self):
-        self.sound_queue = SoundFragmentQueue()
         self.jamendo_client = JamendoAPIClient()
         self.user_client = UserStorageClient()
         self.event_repo = EventRepository()
-        self.shazam_client = ShazamAPIClient()
+        self.shazam_client = AudDAPIClient()
         self.tts_client = GoogleTTSClient()
         self.audio_processor = LocalAudioProcessor()
+
+    def get_handler(self, tool_name: str):
+        handlers = {
+            "check_user": self.handle_check_user,
+            "register_user": self.handle_register_user,
+            "add_event": self.handle_add_event,
+            "check_today_events": self.handle_check_today_events,
+            "recognize_song": self.handle_recognize_song,
+            "generate_audio_fragment": self.handle_generate_audio_fragment,
+            "merge_audio": self.handle_merge_audio,
+        }
+        return handlers.get(tool_name)
 
     async def handle_check_user(self, input_data: dict) -> str:
         result = self.user_client.check_user(input_data['telegramName'])
@@ -69,9 +77,9 @@ class ToolHandler:
             "events": events
         })
 
-    async def handle_recognize_song(self, input_data: dict) -> str:
+    async def handle_recognize_song(self, input_data: dict, context_data: dict) -> str:
         try:
-            audio_data = bytes.fromhex(input_data['audio_data'])
+            audio_data = bytes.fromhex(context_data[input_data['message_id']])
             metadata = await self.shazam_client.detect_song(audio_data)
 
             return json.dumps({
@@ -82,7 +90,7 @@ class ToolHandler:
             logger.error(f"Recognition error: {e}")
             return json.dumps({
                 "success": False,
-                "metadata": {}
+                "metadata": {"error": str(e)}
             })
 
     async def handle_generate_audio_fragment(self, input_data: dict) -> str:

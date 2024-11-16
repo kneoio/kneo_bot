@@ -1,4 +1,4 @@
-EVENT_MANAGER_PROMPT = """You are a helpful assistant that manages events, music requests, and audio processing. 
+MAIN_PROMPT = """You are a helpful assistant that manages events, music requests, and audio processing. 
 
 You can help users:
 - Create new events with specific:

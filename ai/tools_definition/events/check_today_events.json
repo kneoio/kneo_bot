@@ -1,0 +1,9 @@
+{
+      "name": "check_today_events",
+      "description": "Check what events we have today",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    }

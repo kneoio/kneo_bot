@@ -1,0 +1,16 @@
+ {
+      "name": "check_user",
+      "description": "Check if a user exists in the system",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "telegramName": {
+            "type": "string",
+            "description": "Telegram username to check"
+          }
+        },
+        "required": [
+          "telegramName"
+        ]
+      }
+    }

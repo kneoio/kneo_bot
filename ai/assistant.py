@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import anthropic
@@ -5,64 +6,92 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ContextTypes
 from bot.constants import UNDEFINED
-from ai.prompts.events import EVENT_MANAGER_PROMPT
-from ai.tools import ToolHandler
+from ai.prompts.main_prompt import MAIN_PROMPT
+from ai.tool_handler import ToolHandler
+from models.claude_message import ClaudeMessage
 from utils.logger import logger
 
 load_dotenv()
 
+
 def load_tool_definitions():
+    tools = []
+    base_path = 'ai/tools_definition'
+    categories = ['audio']  # , 'users', 'events']
+
     try:
-        with open('ai/tools_definition/base_tools.json', 'r') as file:
-            data = json.load(file)
-            logger.info(f"Loaded tools: {[t['name'] for t in data['tools']]}")
-            return data['tools']
+        for category in categories:
+            category_path = os.path.join(base_path, category)
+            if not os.path.exists(category_path):
+                logger.warning(f"Category path not found: {category_path}")
+                continue
+
+            for filename in os.listdir(category_path):
+                if filename.endswith('.json'):
+                    file_path = os.path.join(category_path, filename)
+                    logger.debug(f"Loading tool from: {file_path}")
+                    with open(file_path, 'r') as file:
+                        tool = json.load(file)
+                        tools.append(tool)
+
+        logger.info(f"Loaded tools: {[t['name'] for t in tools]}")
+        return tools
     except Exception as e:
-        logger.error(f"Error loading tool definitions: {e}")
+        logger.error(f"Error loading tool definitions: {e}", exc_info=True)
         return []
+
 
 class Assistant:
     def __init__(self):
+        logger.info("Initializing Assistant...")
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        logger.info("Loading tool definitions...")
         self.tools = load_tool_definitions()
+        # logger.debug(f"Loaded tools configuration: {json.dumps(self.tools, indent=2)}")
         self.tool_handler = ToolHandler()
-        logger.info("Assistant initialized")
+        logger.info("Assistant initialization completed")
 
     async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        message_text = update.message.text
-        chat_id = str(update.effective_chat.id)
-        user_id = str(update.effective_user.id)
-        username = update.effective_user.username
-
         try:
             if update.message.audio:
                 file_obj = await context.bot.get_file(update.message.audio.file_id)
                 file_data = await file_obj.download_as_bytearray()
-                context.user_data['current_audio'] = file_data.hex()
-                logger.info(f"Audio file stored: {update.message.audio.file_name}")
+                message_id = str(update.message.message_id)
+                context.user_data[message_id] = file_data.hex()
 
-            response = await self.handle_conversation(
-                chat_id, user_id, username,
-                [{"role": "user", "content": message_text}],
-                EVENT_MANAGER_PROMPT,
-                context
-            )
+                if update.message.caption:
+                    message_text = (
+                        f"An audio file has been uploaded (message_id: {message_id}). "
+                        f"{update.message.caption}")
+                else:
+                    message_text = (
+                        f"An audio file has been uploaded (message_id: {message_id}). "
+                        f"Recognize this song")
+            else:
+                message_text = update.message.text
 
-            await update.message.reply_text(response if response != UNDEFINED else "I'm not sure how to help with that.")
+            logger.debug(f"Prepared message text: {message_text}")
+            message = ClaudeMessage.user_message(message_text)
+
+            response = await self.handle_conversation([message.to_dict()], context)
+
+            if response and response != "Audio generated successfully":
+                await update.message.reply_text(
+                    response if response != UNDEFINED else "I'm not sure how to help with that.")
 
         except Exception as e:
-            logger.error(f"Error: {e}")
+            logger.error(f"Error in handle_text: {e}", exc_info=True)
             await update.message.reply_text("An error occurred")
 
-    async def handle_conversation(self, chat_id: str, user_id: str, username: str,
-                               messages: list, system_prompt: str, context: ContextTypes.DEFAULT_TYPE) -> str:
-        while True:
-            logger.info("Sending request to Claude")
+    async def handle_conversation(self, messages: list, context: ContextTypes.DEFAULT_TYPE) -> str:
+        try:
+            logger.info(f"Sending request to Claude with {len(messages)} messages")
+
             response = self.client.messages.create(
                 model=os.getenv("AI_MODEL"),
                 max_tokens=1024,
+                system=MAIN_PROMPT,
                 messages=messages,
-                system=system_prompt,
                 tools=self.tools
             )
 
@@ -89,24 +118,38 @@ class Assistant:
             else:
                 return response.content[0].text
 
+        except Exception as e:
+            logger.error(f"Claude API error: {str(e)}", exc_info=True)
+            raise
+
     async def process_tool_call(self, tool_name: str, tool_input: dict, context: ContextTypes.DEFAULT_TYPE) -> str:
         try:
-            # For recognize_song, add audio data from context
-            if tool_name == "recognize_song":
-                tool_input['audio_data'] = context.user_data.get('current_audio', '')
-
             handler = self.tool_handler.get_handler(tool_name)
-            if handler:
-                return await handler(tool_input)
+            if not handler:
+                logger.error(f"Unknown tool: {tool_name}")
+                return json.dumps({"success": False, "metadata": None})
 
-            logger.error(f"Unknown tool: {tool_name}")
-            return json.dumps({
-                "success": False,
-                "metadata": None
-            })
+            logger.debug(f"Processing tool call: {tool_name} with input: {json.dumps(tool_input, indent=2)}")
+
+            if tool_name == "recognize_song":
+                result = await handler(tool_input, context.user_data)
+            elif tool_name == "generate_audio_fragment":
+                result_json = await handler(tool_input)
+                result_data = json.loads(result_json)
+                if result_data["success"]:
+                    audio_bytes = bytes.fromhex(result_data["audio_data"])
+                    audio_file = io.BytesIO(audio_bytes)
+                    audio_file.name = 'audio.mp3'
+                    await context.bot.send_audio(chat_id=context._chat_id, audio=audio_file)
+                return "Audio generated successfully"
+            else:
+                result = await handler(tool_input)
+
+            logger.debug(f"Tool call result: {result}")
+            return result
 
         except Exception as e:
-            logger.error(f"Error in tool call: {e}")
+            logger.error(f"Error in tool call: {e}", exc_info=True)
             return json.dumps({
                 "success": False,
                 "metadata": None

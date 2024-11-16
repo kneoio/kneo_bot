@@ -1,0 +1,19 @@
+{
+  "name": "merge_audio",
+  "description": "Merge two audio files",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "intro_audio": {
+        "type": "string"
+      },
+      "main_audio": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "intro_audio",
+      "main_audio"
+    ]
+  }
+}

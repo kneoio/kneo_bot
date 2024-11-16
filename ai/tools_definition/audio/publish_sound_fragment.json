@@ -1,0 +1,50 @@
+ {
+      "name": "publish_sound_fragment",
+      "description": "Publish sound fragment to Google Pub/Sub queue",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "fragment": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string"
+              },
+              "fileUri": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "author": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "genre": {
+                "type": "string"
+              },
+              "album": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "source",
+              "fileUri",
+              "type",
+              "author",
+              "name",
+              "createdAt",
+              "genre"
+            ]
+          }
+        },
+        "required": [
+          "fragment"
+        ]
+      }
+    }

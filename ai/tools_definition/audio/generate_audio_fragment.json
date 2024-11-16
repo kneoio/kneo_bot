@@ -1,0 +1,15 @@
+{
+  "name": "generate_audio_fragment",
+  "description": "Generate spoken audio fragment using Google TTS",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "text"
+    ]
+  }
+}

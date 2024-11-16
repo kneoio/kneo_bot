@@ -1,8 +1,7 @@
 import os
 from dotenv import load_dotenv
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ConversationHandler, \
-    CallbackContext
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 
 from ai.assistant import Assistant
 from bot.command__handler import list_events, start
@@ -10,6 +9,7 @@ from utils.logger import logger
 
 load_dotenv()
 API_TOKEN = os.getenv('TELEGRAM_BOT_API_TOKEN')
+
 
 async def set_language(update, context):
     if len(context.args) > 0:
@@ -20,37 +20,29 @@ async def set_language(update, context):
         await update.message.reply_text("Please provide a valid language code (e.g., 'en', 'pt').")
 
 
-async def cancel(update: Update, context: CallbackContext):
-    await update.message.reply_text("Operation cancelled.")
-    return ConversationHandler.END
-
-
 async def error_handler(update: object, context: CallbackContext):
     logger.error("Exception while handling an update:", exc_info=context.error)
     if isinstance(update, Update) and update.message:
         await update.message.reply_text("An error occurred. Please try again.")
 
+
 if __name__ == '__main__':
-   logger.info("Starting the bot...")
+    logger.info("Starting the bot...")
 
-   app = ApplicationBuilder().token(API_TOKEN).build()
-   app.add_error_handler(error_handler)
+    app = ApplicationBuilder().token(API_TOKEN).build()
+    app.add_error_handler(error_handler)
 
-   ai_handler = Assistant()
+    ai_handler = Assistant()
 
-   app.add_handler(CommandHandler('events', list_events))
-   registration_conv_handler = ConversationHandler(
-       entry_points=[CommandHandler('start', start)],
-       states={},
-       fallbacks=[CommandHandler('cancel', cancel)]
-   )
+    app.add_handler(CommandHandler('start', start))
+    app.add_handler(CommandHandler('events', list_events))
+    app.add_handler(CommandHandler('set_language', set_language))
 
-   app.add_handler(registration_conv_handler)
-   # Handle both text and audio with AI assistant
-   app.add_handler(MessageHandler(
-       (filters.TEXT | filters.AUDIO) & ~filters.COMMAND,
-       ai_handler.handle_text
-   ))
+    # Handle both text and audio with AI assistant
+    app.add_handler(MessageHandler(
+        (filters.TEXT | filters.AUDIO) & ~filters.COMMAND,
+        ai_handler.handle_text
+    ))
 
-   logger.info("Bot is running...")
-   app.run_polling()
+    logger.info("Bot is running...")
+    app.run_polling()

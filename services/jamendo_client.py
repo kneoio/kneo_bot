@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from datetime import datetime
 from models.SoundFragment import SoundFragment
 from utils.logger import logger
-from services.SoundFragmentQueue import SoundFragmentQueue
 
 load_dotenv()
 
@@ -93,6 +92,4 @@ if __name__ == "__main__":
     jamendo_client = JamendoAPIClient()
     sound_fragment = jamendo_client.get_sound_fragment(["house", "edm"])
     if sound_fragment:
-        sound_queue = SoundFragmentQueue()
-        sound_queue.publish_sound_fragment(sound_fragment)
         logger.info("SoundFragment published to Pub/Sub")

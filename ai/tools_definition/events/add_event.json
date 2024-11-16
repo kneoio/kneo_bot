@@ -1,0 +1,51 @@
+{
+      "name": "add_event",
+      "description": "Add a new event to the system",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the event"
+          },
+          "around": {
+            "type": "string",
+            "description": "When event occurs (ISO datetime format)"
+          },
+          "precision": {
+            "type": "string",
+            "enum": [
+              "exact_time",
+              "morning",
+              "afternoon",
+              "evening",
+              "during_day",
+              "anytime"
+            ],
+            "description": "Time precision of the event"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "birthday",
+              "errand",
+              "reminder",
+              "meeting",
+              "deadline"
+            ],
+            "description": "Type of event"
+          },
+          "author": {
+            "type": "string",
+            "description": "Telegram username of event creator"
+          }
+        },
+        "required": [
+          "description",
+          "around",
+          "precision",
+          "type",
+          "author"
+        ]
+      }
+    }

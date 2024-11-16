@@ -1,0 +1,19 @@
+{
+      "name": "get_sound_fragment",
+      "description": "Get a sound fragment from Jamendo API by providing list of genres",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of genres to search for (e.g. [\"house\", \"edm\"])"
+          }
+        },
+        "required": [
+          "genres"
+        ]
+      }
+    }
