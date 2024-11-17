@@ -2,7 +2,6 @@ import os
 from typing import List
 
 import requests
-from google.cloud import storage
 from dotenv import load_dotenv
 from datetime import datetime
 from models.SoundFragment import SoundFragment
@@ -14,19 +13,11 @@ load_dotenv()
 class JamendoAPIClient:
     def __init__(self):
         self.client_id = os.getenv("JAMENDO_CLIENT_ID")
-        self.bucket_name = os.getenv("GCP_BUCKET_NAME")
         self.api_base_url = "https://api.jamendo.com/v3.0"
-        self.storage_client = storage.Client()
-
-    def upload_to_gcs(self, content, blob_name):
-        bucket = self.storage_client.bucket(self.bucket_name)
-        blob = bucket.blob(blob_name)
-        blob.upload_from_string(content)
-        return f"gs://{self.bucket_name}/{blob_name}"
 
     def fetch_metadata_by_genre(self, genres:  List[str]):
         url = f"{self.api_base_url}/tracks"
-        genre_string = "+".join(genres["genres"])
+        genre_string = "+".join(genres)
         params = {
             "client_id": self.client_id,
             "format": "json",
@@ -69,11 +60,11 @@ class JamendoAPIClient:
             response.raise_for_status()
 
             blob_name = f"{metadata['artist']}_{metadata['title']}.mp3"
-            file_uri = self.upload_to_gcs(response.content, blob_name)
+            #file_uri = self.upload_to_gcs(response.content, blob_name)
 
             fragment = SoundFragment(
                 source="JAMENDO",
-                fileUri=file_uri,
+                fileUri="",#file_uri,
                 type="SONG",
                 author=metadata["artist"],
                 name=metadata["title"],
@@ -92,4 +83,4 @@ if __name__ == "__main__":
     jamendo_client = JamendoAPIClient()
     sound_fragment = jamendo_client.get_sound_fragment(["house", "edm"])
     if sound_fragment:
-        logger.info("SoundFragment published to Pub/Sub")
+        logger.info(sound_fragment)

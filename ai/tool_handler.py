@@ -91,7 +91,7 @@ class ToolHandler:
         try:
             speech_data = await self.tts_client.synthesize_speech(
                 text=input_data['text'],
-                voice_name=input_data.get('voice_name', 'en-US-Wavenet-D'),
+                voice_name=input_data.get('voice_name', 'en-US-Journey-D'),
                 language_code=input_data.get('language_code', 'en-US')
             )
 
