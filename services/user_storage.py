@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from google.cloud.firestore_v1.base_query import FieldFilter
+
 from models.Member import Member
 from utils.logger import logger
 
